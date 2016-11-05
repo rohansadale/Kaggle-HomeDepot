@@ -1,0 +1,68 @@
+Cleaning
+=====================
+ - text lowercase
+ - Character replacement
+ 	- &amp;  => &
+ 	- &nbsp; => ' '
+ - Spell Correction
+ 	- Google Dictionary
+ - Theasarus Replacement
+ 	- Stemming
+ 	- Synonym replacement
+ 	- Abbreviation convertion(look if there is any package for this)
+
+
+Features
+=====================
+ - Jaccard distance title & query term with unigram
+ - Jaccard distance description & query term unigram
+ - Jaccard distance title & query term with bigram
+ - Jaccard distance description & query term bigram
+ - Edit distance title & query term
+ - Edit distance description & query term
+ - FirstIntersectCount(or ratio  normalized with the number of word ngram in target) Ngram: how many word ngram in target(title) closely matches with the first ngram of obs(query)
+ - LastIntersectCount(or ratio  normalized with the number of word ngram in target) Ngram: same as FirstIntersectCount Ngram but considering last ngram of obs
+ - Average Doc2Vec cosine similarity using unigram(use word2vec or gloVe)
+ - LongestMatchSize(or ratio normalized with the minimum length of obs and target): longest match size between obs and target
+ - MatchAttrRatio: ratio of attribute in product attribute list that matches search term
+ - RMSE between centroid vector of obs and centroid vector of target.(Word2Vec)
+
+ - Match Query Ratio => count of search tearm that occurs in target normalized with length of target. 
+ - AttrBulletRatio => Ratio of bullet attributes in product_attribute_list
+ - AttrHasProductHeight => whether or not contains product height in product_attribute_list.
+ - AttrHasProductWidth => whether or not contains product width in product_attribute_list.
+ - AttrHasProductLength => whether or not contains product length in product_attribute_list.
+ - AttrHasProductDepth => whether or not contains product depth in product_attribute_list.
+
+
+Results of first iteration using Threshold as 2.0
+AdaBoost with DT
+[ 0.6326583   0.66434454  0.67156744  0.67517213  0.67776428]
+[ 0.02385094  0.00326193  0.00158862  0.00140823  0.00251041]
+ ====
+
+RF
+[ 0.67899284  0.68490617  0.68759282  0.68826785  0.69184555]
+[ 0.00510689  0.00240957  0.00248171  0.0024421   0.00245958]
+ ====
+
+LR
+[ 0.69324963  0.69372215  0.6944782   0.69435669  0.69428919]
+[ 0.00187772  0.00105219  0.0003866   0.00068628  0.00069026]
+ ====
+
+Using AdaBoost Classifier ...
+[[1584 3144]
+ [1620 8466]]
+[ 0.39939486  0.78042035]
+Using RandomForestClassifier Classifier ...
+[[1615 3113]
+ [1688 8398]]
+[ 0.40219151  0.77770061]
+Using LogisticRegression Classifier ...
+[[ 922 3806]
+ [ 693 9393]]
+[ 0.29071417  0.80678548]
+
+
+

@@ -12,6 +12,7 @@ value might be big and for smaller string it might be smaller. So we need to acc
 for variation of string length.
 """
 def compute_edit_distance(s1, s2):
+	print s1, s2
 	return round(distance(s1, s2)/float(max(len(s1),len(s2))), 3)
 
 """
@@ -119,6 +120,45 @@ def compute_match_attr_ratio(product_id, search_term, attributes):
 		if len(search_term_tokens.intersection(key_tokens)) > 0:
 			ans = ans + 1
 	return ans * 1.0 / len(attribute_dict.keys())
+
+"""
+count of word ngram of search term that closely matches with any ngram of target
+"""
+def compute_intersect_count(s1, s2, ngram, threshold):
+	s1_ngrams = gen_ngrams(s1, ngram)
+	s2_ngrams = gen_ngrams(s2, ngram)
+	ct = 0
+
+	for search_term in s2_ngrams:
+		for target_term in s1_ngrams:
+			if is_str_match(search_term, target_term, threshold):
+				ct = ct + 1
+				break
+
+	return float(ct) / len(s2_ngrams)
+
+"""
+count of closely matching word ngram pairs between search term and target
+
+# ----------------------------------------------------------------------------
+# How many cooccurrence ngrams between obs and target?
+# Obs: [AB, AB, AB, AC, DE, CD]
+# Target: [AB, AC, AB, AD, ED]
+# ->
+# CooccurrenceCount: 7 (i.e., AB x 2 + AB x 2 + AB x 2 + AC x 1)
+# CooccurrenceRatio: 7/(6 x 5)
+"""
+def compute_coccurence_count(s1, s2, ngram, threshold):
+	s1_ngrams = gen_ngrams(s1, ngram)
+	s2_ngrams = gen_ngrams(s2, ngram)
+	ct = 0
+
+	for search_term in s2_ngrams:
+		for target_term in s1_ngrams:
+			if is_str_match(search_term, target_term, threshold):
+				ct = ct + 1
+
+	return float(ct) / len(s2_ngrams) * len(s1_ngrams)
 
 """
 Function to generate ngrams.

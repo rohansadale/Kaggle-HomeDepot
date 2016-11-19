@@ -28,7 +28,7 @@ def plot_learning_curve(ada_error_mean, ada_error_std,
     plt.fill_between(split_ratio, lr_error_mean - lr_error_std, lr_error_mean + lr_error_std, alpha=0.1, color="b")
     plt.plot(split_ratio, ada_error_mean, 'o-', color="r", label="AdaBoostClassifier")
     plt.plot(split_ratio, rf_error_mean, 'o-', color="g", label="Random Forest")
-    plt.plot(split_ratio, lr_error_mean, 'o-', color="b", label="Linear SVM")
+    plt.plot(split_ratio, lr_error_mean, 'o-', color="b", label="Logistic Regression")
     plt.legend(loc="best")
     plt.savefig(file_name)
 

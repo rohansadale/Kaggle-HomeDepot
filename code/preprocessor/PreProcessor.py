@@ -24,7 +24,7 @@ class PreProcessor(object):
 	def clean_it_(self, input_str, should_spell_check = False):
 		tokens = self.pattern.findall(input_str)
 		for i, entry in enumerate(tokens):
-			tokens[i] = tokens[i].lower()
+			tokens[i] = str(tokens[i].lower())
 			if should_spell_check:
 				tokens[i] = spell(tokens[i])
 			tokens[i] = self.stemmer.stemWord(tokens[i])
@@ -40,7 +40,7 @@ class PreProcessor(object):
 
 		print "Cleaning search term .... "
 		t1 = time.time()
-		self.data['search_term'] = map(lambda x: self.clean_it_(x, should_spell_check = True), self.data['search_term'])
+		self.data['search_term'] = map(lambda x: self.clean_it_(x, should_spell_check = False), self.data['search_term'])
 		print "Time while cleaning search term is %d seconds \n" % int(time.time() - t1)
 
 		print "Cleaning product description .... "

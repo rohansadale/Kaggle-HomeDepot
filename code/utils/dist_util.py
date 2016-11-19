@@ -12,7 +12,7 @@ value might be big and for smaller string it might be smaller. So we need to acc
 for variation of string length.
 """
 def compute_edit_distance(s1, s2):
-	print s1, s2
+	s1, s2 = str(s1), str(s2)
 	return round(distance(s1, s2)/float(max(len(s1),len(s2))), 3)
 
 """

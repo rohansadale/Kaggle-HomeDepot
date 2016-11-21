@@ -1,12 +1,12 @@
+# -*- coding: utf-8 -*-
 import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.externals import joblib
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit, GridSearchCV
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
@@ -34,7 +34,7 @@ def plot_learning_curve(ada_error_mean, ada_error_std,
 
 def plot_feature_importances(importance_list, name_list, feature_importance_file_name):
 	plt.barh(range(len(name_list)),importance_list,align='center')
-	plt.yticks(range(len(name_list)),name_list)
+	plt.yticks(range(len(name_list)),name_list, rotation = 45)
 	plt.xlabel('Relative Importance in the Random Forest')
 	plt.ylabel('Features')
 	plt.title('Relative importance of Each Feature')
@@ -94,8 +94,8 @@ def fitLR(X, y):
 	return best_clf 
 
 train_file_name = sys.argv[1]
-num_splits = 1
-split_ratio = [1.00]
+num_splits = 5
+split_ratio = [0.10, 0.25, 0.50, 0.75, 1.0]
 
 ada_errors = np.zeros((num_splits, len(split_ratio)))
 rf_errors = np.zeros((num_splits, len(split_ratio)))
@@ -105,9 +105,9 @@ X, y, column_names = read_csv(train_file_name)
 print "Class distribution ..... "
 print np.unique(y, return_counts = True)
 
-best_clf_adaboost, ada_max_accuracy = None, 0
-best_clf_rf, rf_max_accuracy = None, 0
-best_clf_lr, lr_max_accuracy = None, 0
+"""
+Learning Curve
+"""
 
 for i in range(num_splits):
 	print "Running iteration %d " % (i+1)
@@ -123,22 +123,16 @@ for i in range(num_splits):
 			clf.fit(X_train, y_train)
 			y_pred = clf.predict(X_test)
 			ada_errors[i][j] = np.mean(y_pred == y_test)
-			if 1.00 == split_ratio[j] and np.mean(y_pred == y_test) > ada_max_accuracy:
-				best_clf_adaboost, ada_max_accuracy = clf, np.mean(y_pred == y_test)
 			
 			clf_rf = fitRandomForest(X_train, y_train)
 			clf_rf.fit(X_train, y_train)
 			y_pred = clf_rf.predict(X_test)
 			rf_errors[i][j] = np.mean(y_pred == y_test)
-			if 1.00 == split_ratio[j] and np.mean(y_pred == y_test) > rf_max_accuracy:
-				best_clf_rf, rf_max_accuracy = clf_rf, np.mean(y_pred == y_test)
 			
 			clf_lr = fitLR(X_train, y_train)
 			clf_lr.fit(X_train, y_train)
 			y_pred = clf_lr.predict(X_test)
 			lr_errors[i][j] = np.mean(y_pred == y_test)
-			if 1.00 == split_ratio[j] and np.mean(y_pred == y_test) > lr_max_accuracy:
-				best_clf_lr, lr_max_accuracy = clf_lr, np.mean(y_pred == y_test)
 
 ada_mean = np.mean(ada_errors, axis = 0)
 ada_std = np.std(ada_errors, axis = 0)
@@ -164,32 +158,39 @@ print lr_mean
 print lr_std
 print " ========================================= "
 
+plot_learning_curve(ada_mean, ada_std, rf_mean, rf_std, lr_mean, lr_std, split_ratio, '../plots/learning_curve.png')
+
+"""
+Feature Importance & F1 - scores
+"""
 train_index, test_index = get_train_test_indexes(y)
 X_train, y_train, X_test, y_test = X[train_index], y[train_index], X[test_index], y[test_index]
 
-best_clf_adaboost.fit(X_train, y_train)
-y_pred_adaboost = best_clf_adaboost.predict(X_test)
-print "Using AdaBoost Classifier ... "
-print confusion_matrix(y_test, y_pred_adaboost,[0, 1])
-print f1_score(y_test, y_pred_adaboost, [0, 1], average = None)
-
-best_clf_rf.fit(X_train, y_train)
-y_pred_rf = best_clf_rf.predict(X_test)
+clf_rf = fitRandomForest(X_train, y_train)
+clf_rf.fit(X_train, y_train)
+y_pred = clf_rf.predict(X_test)
 print "Using RandomForestClassifier Classifier ... "
-print confusion_matrix(y_test, y_pred_rf,[0, 1])
-print f1_score(y_test, y_pred_rf, [0, 1], average = None)
-
-best_clf_lr.fit(X_train, y_train)
-y_pred_lr = best_clf_lr.predict(X_test)
-print "Using LogisticRegression Classifier ... "
-print confusion_matrix(y_test, y_pred_lr,[0, 1])
-print f1_score(y_test, y_pred_lr, [0, 1], average = None)
+print confusion_matrix(y_test, y_pred,[0, 1])
+print f1_score(y_test, y_pred, [0, 1], average = None)
 
 print "Feature importance .... "
-print best_clf_rf.feature_importances_
-importance_list = best_clf_rf.feature_importances_
-importance_list, name_list = zip(*sorted(zip(map(lambda x: round(x, 4), best_clf_rf.feature_importances_), column_names), reverse=True))
+print clf_rf.feature_importances_
+importance_list = clf_rf.feature_importances_
+importance_list, name_list = zip(*sorted(zip(map(lambda x: round(x, 4), clf_rf.feature_importances_), column_names), reverse=True))
 importance_list, name_list = importance_list[:5], name_list[:5]
-
+print importance_list, name_list
 plot_feature_importances(importance_list, name_list, '../plots/feature_importance.png')
-plot_learning_curve(ada_mean, ada_std, rf_mean, rf_std, lr_mean, lr_std, split_ratio, '../plots/learning_curve.png')
+
+clf_adaboost = fitAdaBoost(X_train, y_train)
+clf_adaboost.fit(X_train, y_train)
+y_pred = clf_adaboost.predict(X_test)
+print "Using AdaBoost Classifier ... "
+print confusion_matrix(y_test, y_pred,[0, 1])
+print f1_score(y_test, y_pred, [0, 1], average = None)
+
+clf_lr = fitLR(X_train, y_train)
+clf_lr.fit(X_train, y_train)
+y_pred = clf_lr.predict(X_test)
+print "Using LogisticRegression Classifier ... "
+print confusion_matrix(y_test, y_pred,[0, 1])
+print f1_score(y_test, y_pred, [0, 1], average = None)

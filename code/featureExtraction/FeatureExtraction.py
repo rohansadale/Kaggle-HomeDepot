@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import gensim
 import sys
 sys.path.append("..")
@@ -20,6 +21,7 @@ class FeatureExtraction(object):
 
 	def extractContextualFeatures(self):
 		self.y = map(lambda x: 1 if x > FeatureExtraction.THRESHOLD else 0, self.data['relevance'])
+		
 		self.word2Vec_model = gensim.models.Word2Vec.load(self.word2Vec_model_fname)
 		
 		self.jaccard_unigram_title = self.data.apply(lambda x: compute_jaccard(x['product_title'], x['search_term'], ngram = 1), axis = 1)
@@ -33,7 +35,7 @@ class FeatureExtraction(object):
 		self.edit_distance_title = self.data.apply(lambda x: compute_edit_distance(x['product_title'], x['search_term']), axis = 1)
 		self.edit_distance_desc = self.data.apply(lambda x: compute_edit_distance(self.description[x['product_uid']], x['search_term']),
 								 axis = 1)
-
+		
 		self.first_intersect_count_unigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], x['search_term'],
 											0, 1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
 		self.last_intersect_count_unigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], x['search_term'],
@@ -42,7 +44,7 @@ class FeatureExtraction(object):
 		 									0, 2, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
 		self.last_intersect_count_bigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], x['search_term'],
 		 									-1, 2, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-
+		
 		# TODO(akshay) - Try also with product description
 		self.avg_similarity = self.data.apply(lambda x: compute_cosine_similarity(x['product_title'], x['search_term'], 
 								self.word2Vec_model), axis = 1)
@@ -57,6 +59,7 @@ class FeatureExtraction(object):
 								1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
 		self.coccurence_count = self.data.apply(lambda x: compute_coccurence_count(x['product_title'], x['search_term'], 
 								1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		
 		self.attr_has_height = self.data.apply(lambda x:self.has_height[x['product_uid']] if x['product_uid'] in self.has_height else 0.0,
 								axis = 1)
 		self.attr_has_depth = self.data.apply(lambda x:self.has_depth[x['product_uid']] if x['product_uid'] in self.has_depth else 0.0,

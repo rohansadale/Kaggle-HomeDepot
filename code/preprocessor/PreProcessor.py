@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 import re
 import gensim
 import time
 
 from autocorrect import spell
+from spell_corrector import str_stem
 import Stemmer
 
 # TODO(akshay) - Try other Stemmer
@@ -40,7 +42,7 @@ class PreProcessor(object):
 
 		print "Cleaning search term .... "
 		t1 = time.time()
-		self.data['search_term'] = map(lambda x: self.clean_it_(x, should_spell_check = False), self.data['search_term'])
+		self.data['search_term'] = map(lambda x:str_stem(x), self.data['search_term'])
 		print "Time while cleaning search term is %d seconds \n" % int(time.time() - t1)
 
 		print "Cleaning product description .... "

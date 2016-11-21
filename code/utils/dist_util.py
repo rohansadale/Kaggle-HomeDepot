@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 from difflib import SequenceMatcher
 from Levenshtein import distance
@@ -35,12 +36,14 @@ with last ngram in observation(product title;s1). This feature should give more 
 def compute_first_last_intersect(s1, s2, idx, ngram, threshold):
 	s1_ngrams = gen_ngrams(s1, ngram)
 	s2_ngrams = gen_ngrams(s2, ngram)
+	if 0 == len(s1_ngrams):
+		return 0.0
 	ct = 0
 
 	for entry in s2_ngrams:
 		if is_str_match(entry, s1_ngrams[idx], threshold):
 			ct = ct + 1
-	return float(ct) / len(s2_ngrams) 
+	return _try_divide(float(ct), len(s2_ngrams))
 
 """
 function to check if two strings matches with given level of similarity.
@@ -48,7 +51,7 @@ function to check if two strings matches with given level of similarity.
 def is_str_match(src, target, threshold):
 	if threshold == 1.0:
 		return src == target
-	return (1.0 - compute_edit_distance(src, threshold)) >= threshold
+	return (1.0 - compute_edit_distance(src, target)) >= threshold
 
 """
 Function to compute how close are search term and product title. For each word in search_term, compute the
@@ -127,6 +130,8 @@ count of word ngram of search term that closely matches with any ngram of target
 def compute_intersect_count(s1, s2, ngram, threshold):
 	s1_ngrams = gen_ngrams(s1, ngram)
 	s2_ngrams = gen_ngrams(s2, ngram)
+	if 0 == len(s2_ngrams):
+		return 0.0
 	ct = 0
 
 	for search_term in s2_ngrams:
@@ -135,7 +140,7 @@ def compute_intersect_count(s1, s2, ngram, threshold):
 				ct = ct + 1
 				break
 
-	return float(ct) / len(s2_ngrams)
+	return _try_divide(float(ct), len(s2_ngrams))
 
 """
 count of closely matching word ngram pairs between search term and target
@@ -151,6 +156,8 @@ count of closely matching word ngram pairs between search term and target
 def compute_coccurence_count(s1, s2, ngram, threshold):
 	s1_ngrams = gen_ngrams(s1, ngram)
 	s2_ngrams = gen_ngrams(s2, ngram)
+	if 0 == len(s1_ngrams) or 0 == len(s2_ngrams):
+		return 0.0
 	ct = 0
 
 	for search_term in s2_ngrams:
@@ -158,7 +165,7 @@ def compute_coccurence_count(s1, s2, ngram, threshold):
 			if is_str_match(search_term, target_term, threshold):
 				ct = ct + 1
 
-	return float(ct) / len(s2_ngrams) * len(s1_ngrams)
+	return _try_divide(float(ct), len(s1_ngrams) * len(s2_ngrams))
 
 """
 Function to generate ngrams.
@@ -166,8 +173,8 @@ Function to generate ngrams.
 def gen_ngrams(text, ngrams = 1):
 	tokens = text.split(' ')
 	output = []
-	for i in range(len(text)-ngrams+1):
-		output.append(text[i:i+ngrams])
+	for i in range(len(tokens)-ngrams+1):
+		output.append(tokens[i:i+ngrams])
 	return [' '.join(x) for x in output]
 
 def _try_divide(num, den):

@@ -28,7 +28,7 @@ The feature values were normalized so that we take into account varying length o
 
 The dataset consists of 74067 data points out of which 50428 are labelled as relevant and other 23639 are labelled as relevant. Currently we have 22 features capturing different relationships between search term and product metadata. The algorithms that we use for model building are Random Forests, AdaBoost and Logistic Regression. Model evaluation involved leveraging learning curve, 5-fold cross validation score and F1-scores to evaluate performance of our classifiers.
 
-For model evaluation, we split dataset in 80:20 ratio (train-test split) maintaining the class proportions. The learning curve results are shown below (and in Figure 1). And respective F1-scores are mentioned in Appendix-1
+For model evaluation, we split dataset in 80:20 ratio (train-test split) maintaining the class proportions. The learning curve results are shown below (and in Figure 1). Refer to Appendix-1 for F1-scores.
 ```{r, echo=FALSE}
 library(pander)
 library(ggplot2)

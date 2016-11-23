@@ -61,6 +61,8 @@ the minimum value of those maximum values as output feature.
 def compute_cosine_similarity(target, src, model):
 	target_tokens = [w for w in target.split(" ") if w in model]
 	src_tokens = [w for w in src.split(" ") if w in model]
+	if 0 == len(target_tokens) or 0 == len(src_tokens):
+		return 0.0
 	min_similarity = 2.0
 	for src_entry in src_tokens:
 		max_similarity = max(map(lambda x: cosine_similarity(model[src_entry], model[x]), target_tokens))

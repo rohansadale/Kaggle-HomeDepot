@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.externals import joblib
-from sklearn.model_selection import StratifiedShuffleSplit, GridSearchCV
+from sklearn.model_selection import StratifiedShuffleSplit, GridSearchCV, cross_val_score
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
@@ -66,11 +66,12 @@ def get_train_test_indexes(y, train_proportion = 0.8):
 def fitAdaBoost(X, y):
 	param_grid = {  "base_estimator__criterion" : ["gini", "entropy"],
 						"base_estimator__splitter" :   ["best", "random"]}
-	clf_dt = DecisionTreeClassifier(random_state = 4, max_features = "auto", class_weight = "balanced", max_depth = None)
+	clf_dt = DecisionTreeClassifier(random_state = 4, class_weight = "balanced", max_depth = 5)
 	clf_abc = AdaBoostClassifier(base_estimator = clf_dt)
 	clf = GridSearchCV(clf_abc, param_grid = param_grid, cv = 5, scoring = 'accuracy')
 	clf.fit(X, y)
-	best_clf_dt = DecisionTreeClassifier(random_state = 4, max_features = "auto", class_weight = "balanced", max_depth = None,
+	print clf.cv_results_
+	best_clf_dt = DecisionTreeClassifier(random_state = 4, max_features = "auto", class_weight = "balanced", max_depth = 5,
 										criterion = clf.best_params_['base_estimator__criterion'], splitter = clf.best_params_['base_estimator__splitter'])
 	best_clf = AdaBoostClassifier(base_estimator = best_clf_dt)
 	return best_clf
@@ -95,11 +96,13 @@ def fitLR(X, y):
 
 train_file_name = sys.argv[1]
 num_splits = 5
-split_ratio = [0.10, 0.25, 0.50, 0.75, 1.0]
+split_ratio = np.arange(0.05, 1.0, 0.05)
 
 ada_errors = np.zeros((num_splits, len(split_ratio)))
 rf_errors = np.zeros((num_splits, len(split_ratio)))
 lr_errors = np.zeros((num_splits, len(split_ratio)))
+tr_errors = np.zeros(len(split_ratio))
+te_errors = np.zeros(len(split_ratio))
 
 X, y, column_names = read_csv(train_file_name)
 print "Class distribution ..... "
@@ -108,7 +111,6 @@ print np.unique(y, return_counts = True)
 """
 Learning Curve
 """
-
 for i in range(num_splits):
 	print "Running iteration %d " % (i+1)
 	stratified_split = StratifiedShuffleSplit(n_splits = 1, test_size = 0.2, random_state = i+1)
@@ -163,6 +165,7 @@ plot_learning_curve(ada_mean, ada_std, rf_mean, rf_std, lr_mean, lr_std, split_r
 """
 Feature Importance & F1 - scores
 """
+
 train_index, test_index = get_train_test_indexes(y)
 X_train, y_train, X_test, y_test = X[train_index], y[train_index], X[test_index], y[test_index]
 

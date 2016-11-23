@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import gensim
 import sys
+import time
 sys.path.append("..")
 from utils.dist_util import compute_jaccard, compute_edit_distance, compute_first_last_intersect, compute_cosine_similarity
 from utils.dist_util import compute_longest_match, compute_rmse, compute_match_attr_ratio, compute_coccurence_count
@@ -17,59 +18,115 @@ class FeatureExtraction(object):
 		self.attributes = preprocessor.attributes
 		self.product_title_mapping = preprocessor.product_title_map
 		self.word2Vec_model_fname = preprocessor.word2Vec_model_fname
+		self.doc2Vec_model_fname = preprocessor.doc2Vec_model_fname
 		self.build_attribute_dict()
 
 	def extractContextualFeatures(self):
 		self.y = map(lambda x: 1 if x > FeatureExtraction.THRESHOLD else 0, self.data['relevance'])
-		
 		self.word2Vec_model = gensim.models.Word2Vec.load(self.word2Vec_model_fname)
-		
-		self.jaccard_unigram_title = self.data.apply(lambda x: compute_jaccard(x['product_title'], x['search_term'], ngram = 1), axis = 1)
+		self.doc2Vec_model = gensim.models.Doc2Vec.load(self.doc2Vec_model_fname)
+		self.construct_jaccard_coef_features()
+		self.construct_edit_distance_features()
+		self.construct_intersect_count_features()
+		self.construct_coccurence_count_features()
+		self.construct_non_contextual_features()
+		self.construct_word2vec_features()
+		self.construct_atrribute_features()
+		self.construct_string_match_features()
+		self.construct_doc2vec_features()
+
+	def construct_jaccard_coef_features(self):
+		print "constructing jaccard coefficient related features .... "
+		t1 = time.time()
+		self.jaccard_unigram_title = self.data.apply(lambda x: compute_jaccard(x['product_title'], x['search_term'], ngram = 1), 
+									axis = 1)
 		self.jaccard_unigram_desc = self.data.apply(lambda x: compute_jaccard(self.description[x['product_uid']], x['search_term'], 
 									ngram = 1), axis = 1)
 
-		self.jaccard_bigram_title = self.data.apply(lambda x: compute_jaccard(x['product_title'], x['search_term'], ngram = 2), axis = 1)
+		self.jaccard_bigram_title = self.data.apply(lambda x: compute_jaccard(x['product_title'], x['search_term'], ngram = 2), 
+									axis = 1)
 		self.jaccard_bigram_desc = self.data.apply(lambda x: compute_jaccard(self.description[x['product_uid']], x['search_term'], 
 									ngram = 2), axis = 1)
+		print "Time while constructing jaccard coefficient related features is %d \n" % int(time.time() - t1)	
 
+	def construct_edit_distance_features(self):
+		print "constructing edit distance related features .... "
+		t1 = time.time()
 		self.edit_distance_title = self.data.apply(lambda x: compute_edit_distance(x['product_title'], x['search_term']), axis = 1)
-		self.edit_distance_desc = self.data.apply(lambda x: compute_edit_distance(self.description[x['product_uid']], x['search_term']),
-								 axis = 1)
-		
-		self.first_intersect_count_unigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], x['search_term'],
-											0, 1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-		self.last_intersect_count_unigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], x['search_term'],
-		 									-1, 1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-		self.first_intersect_count_bigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], x['search_term'],
-		 									0, 2, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-		self.last_intersect_count_bigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], x['search_term'],
-		 									-1, 2, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-		
+		self.edit_distance_desc = self.data.apply(lambda x: compute_edit_distance(self.description[x['product_uid']], 
+									x['search_term']), axis = 1)
+		print "Time while constructing edit distance related features is %d \n" % int(time.time() - t1)	
+	
+	def construct_intersect_count_features(self):
+		print "constructing intersect count related features .... "
+		t1 = time.time()
+		self.first_intersect_count_unigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'],
+											x['search_term'], 0, 1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		self.last_intersect_count_unigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], 
+											x['search_term'], -1, 1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		self.first_intersect_count_bigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], 
+											x['search_term'], 0, 2, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		self.last_intersect_count_bigram = self.data.apply(lambda x: compute_first_last_intersect(x['product_title'], 
+											x['search_term'], -1, 2, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		self.intersect_count = self.data.apply(lambda x: compute_intersect_count(x['product_title'], x['search_term'], 
+								1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		print "Time while constructing intersect count related features is %d \n" % int(time.time() - t1)	
+	
+	def construct_coccurence_count_features(self):
+		print "constructing coccurence related features .... "
+		t1 = time.time()
+		self.coccurence_count = self.data.apply(lambda x: compute_coccurence_count(x['product_title'], x['search_term'], 
+								1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		print "Time while constructing coccurence related features is %d \n" % int(time.time() - t1)	
+
+	def construct_non_contextual_features(self):
+		print "constructing non contextual features .... "
+		t1 = time.time()
+		self.attr_bullet_ratio = self.data.apply(lambda x:self.bullet_ratio[x['product_uid']] if x['product_uid'] in self.bullet_ratio 
+								else 0.0, axis = 1)
+		self.attr_has_height = self.data.apply(lambda x:self.has_height[x['product_uid']] if x['product_uid'] in self.has_height 
+								else 0.0, axis = 1)
+		self.attr_has_depth = self.data.apply(lambda x:self.has_depth[x['product_uid']] if x['product_uid'] in self.has_depth else 0.0,
+								axis = 1)
+		self.attr_has_length = self.data.apply(lambda x:self.has_length[x['product_uid']] if x['product_uid'] in self.has_length 
+								else 0.0, axis = 1)
+		self.attr_has_width = self.data.apply(lambda x:self.has_width[x['product_uid']] if x['product_uid'] in self.has_width else 0.0,
+								axis = 1)
+		print "Time while constructing non contextual features is %d \n" % int(time.time() - t1)	
+
+	def construct_word2vec_features(self):
+		print "constructing features from word2vec .... "
+		t1 = time.time()
 		# TODO(akshay) - Try also with product description
 		self.avg_similarity = self.data.apply(lambda x: compute_cosine_similarity(x['product_title'], x['search_term'], 
 								self.word2Vec_model), axis = 1)
 		self.rmse_title = self.data.apply(lambda x:compute_rmse(x['product_title'], x['search_term'], self.word2Vec_model), axis = 1)
-		self.rmse_desc = self.data.apply(lambda x:compute_rmse(self.description[x['product_uid']], x['search_term'], self.word2Vec_model), axis = 1)
-		self.longest_match = self.data.apply(lambda x:compute_longest_match(x['product_title'], x['search_term']), axis = 1)
-		self.match_attr_ratio = self.data.apply(lambda x:compute_match_attr_ratio(x['product_uid'], x['search_term'], self.attribute_dict),
-								axis = 1)
-		self.attr_bullet_ratio = self.data.apply(lambda x:self.bullet_ratio[x['product_uid']] if x['product_uid'] in self.bullet_ratio else 0.0,
-								axis = 1)
-		self.intersect_count = self.data.apply(lambda x: compute_intersect_count(x['product_title'], x['search_term'], 
-								1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-		self.coccurence_count = self.data.apply(lambda x: compute_coccurence_count(x['product_title'], x['search_term'], 
-								1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-		
-		self.attr_has_height = self.data.apply(lambda x:self.has_height[x['product_uid']] if x['product_uid'] in self.has_height else 0.0,
-								axis = 1)
-		self.attr_has_depth = self.data.apply(lambda x:self.has_depth[x['product_uid']] if x['product_uid'] in self.has_depth else 0.0,
-								axis = 1)
-		self.attr_has_length = self.data.apply(lambda x:self.has_length[x['product_uid']] if x['product_uid'] in self.has_length else 0.0,
-								axis = 1)
-		self.attr_has_width = self.data.apply(lambda x:self.has_width[x['product_uid']] if x['product_uid'] in self.has_width else 0.0,
-								axis = 1)
+		self.rmse_desc = self.data.apply(lambda x:compute_rmse(self.description[x['product_uid']], x['search_term'], 
+						self.word2Vec_model), axis = 1)
+		print "Time while constructing features from word2vec is %d \n" % int(time.time() - t1)	
 
+	def construct_string_match_features(self):
+		print "constructing string matching related features .... "
+		t1 = time.time()
+		self.longest_match = self.data.apply(lambda x:compute_longest_match(x['product_title'], x['search_term']), axis = 1)
+		print "Time while constructing string matching related features is %d \n" % int(time.time() - t1)	
+
+	def construct_atrribute_features(self):
+		print "constructing features from attributes .... "
+		t1 = time.time()
+		self.match_attr_ratio = self.data.apply(lambda x:compute_match_attr_ratio(x['product_uid'], x['search_term'], 
+								self.attribute_dict), axis = 1)
+		print "Time while constructing features from attributes is %d \n" % int(time.time() - t1)	
 	
+	def construct_doc2vec_features(self):
+		print "constructing features from doc2vec .... "
+		t1 = time.time()
+		self.doc2vec_rmse_title = self.data.apply(lambda x:compute_rmse(x['product_title'], x['search_term'], self.doc2Vec_model), 
+								axis = 1)
+		self.doc2vec_rmse_desc = self.data.apply(lambda x:compute_rmse(self.description[x['product_uid']], x['search_term'], 
+						self.doc2Vec_model), axis = 1)
+		print "Time while constructing features from doc2vec is %d \n" % int(time.time() - t1)	
+
 	def extractNonContextualFeatures(self):
 		self.bullet_ratio = {}
 		self.has_height = {}
@@ -95,10 +152,12 @@ class FeatureExtraction(object):
 
 	def combineFeatures(self):
 		self.features = zip(self.jaccard_unigram_title, self.jaccard_unigram_desc, self.jaccard_bigram_title, self.jaccard_bigram_desc,
-						self.edit_distance_title, self.edit_distance_desc, self.first_intersect_count_unigram, self.last_intersect_count_unigram,
-						self.first_intersect_count_bigram, self.last_intersect_count_bigram, self.avg_similarity, self.rmse_title, 
-						self.rmse_desc, self.longest_match, self.match_attr_ratio, self.attr_bullet_ratio, self.intersect_count, self.coccurence_count, 
-						self.attr_has_height, self.attr_has_depth, self.attr_has_length, self.attr_has_width, self.y)
+						self.edit_distance_title, self.edit_distance_desc, self.first_intersect_count_unigram, 
+						self.last_intersect_count_unigram, self.first_intersect_count_bigram, self.last_intersect_count_bigram, 
+						self.avg_similarity, self.rmse_title, self.rmse_desc, self.longest_match, self.match_attr_ratio, 
+						self.attr_bullet_ratio, self.intersect_count, self.coccurence_count, self.doc2vec_rmse_title,
+						self.doc2vec_rmse_desc, self.attr_has_height, self.attr_has_depth, self.attr_has_length, self.attr_has_width,
+						self.y)
 
 	def build_attribute_dict(self):
 		self.attribute_dict = {}

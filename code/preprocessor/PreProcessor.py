@@ -4,7 +4,10 @@ import gensim
 import time
 
 from autocorrect import spell
+from collections import namedtuple
+from nltk.corpus import stopwords
 from spell_corrector import str_stem
+from TextCleaner import TextCleaner
 import Stemmer
 
 # TODO(akshay) - Try other Stemmer
@@ -21,17 +24,17 @@ class PreProcessor(object):
 		self.pattern = re.compile(PreProcessor.TOKEN_PATTERN)
 		self.stemmer = Stemmer.Stemmer(PreProcessor.LOCALE)
 		self.word2Vec_model_fname = '/Users/akshaykulkarni/Documents/study/ML/course/project/data/word2vec_dim500'
-		self.sentences = []
+		self.doc2Vec_model_fname = '/Users/akshaykulkarni/Documents/study/ML/course/project/data/doc2vec_dim500'
+		self.cachedStopWords = stopwords.words("english")
 
-	def clean_it_(self, input_str, should_spell_check = False):
-		tokens = self.pattern.findall(input_str)
+	def clean_it_(self, input_str):
+		text_cleaner = TextCleaner(input_str)
+		input_str = text_cleaner.transform()
+		tokens = filter(lambda word: word not in self.cachedStopWords, self.pattern.findall(input_str))
 		for i, entry in enumerate(tokens):
 			tokens[i] = str(tokens[i].lower())
-			if should_spell_check:
-				tokens[i] = spell(tokens[i])
 			tokens[i] = self.stemmer.stemWord(tokens[i])
 			# TODO(akshay) - Think of more text cleaning approaches.
-		self.sentences.append(tokens)
 		return " ".join([entry for entry in tokens])
 
 	def clean_(self):
@@ -61,12 +64,29 @@ class PreProcessor(object):
 		for index, row in self.data.iterrows():
 			self.product_title_map[row['product_uid']] = row['product_title']
 
-		print "Building Word2Vec model"
+	def construct_word2vec_model(self):
+		print "Building Word2Vec model ..... "
 		t1 = time.time()
-		model = gensim.models.Word2Vec(self.sentences, min_count = 5, size = 500, workers = 4, seed = 4)
+		model = gensim.models.Word2Vec(self.description.values(), min_count = 5, size = 500, workers = 4, seed = 4)
 		model.save(self.word2Vec_model_fname)
 		print "Time while building word2Vec model is %d \n" % int(time.time() - t1)		
+
+	def construct_doc2vec_model(self):
+		print "Building doc2Vec model ..... "
+		t1 = time.time()
+		analyzedDocument = namedtuple('AnalyzedDocument', 'words tags')
+		TaggedDocuments = []
+		for i, sentence in enumerate(self.description.values()):
+			try:
+				TaggedDocuments.append(analyzedDocument(self.pattern.findall(sentence), [i]))
+			except:
+				pass
+		model = gensim.models.Doc2Vec(TaggedDocuments, min_count = 5, size = 500, workers = 4, seed = 4)
+		model.save(self.doc2Vec_model_fname)
+		print "Time while building doc2Vec model is %d \n" % int(time.time() - t1)			
 
 	def transform(self):
 		print "cleaning data..."
 		self.clean_()
+		self.construct_word2vec_model()
+		self.construct_doc2vec_model()

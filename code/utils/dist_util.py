@@ -2,6 +2,7 @@
 import numpy as np
 from difflib import SequenceMatcher
 from Levenshtein import distance
+from nltk.corpus import wordnet as wn
 
 """
 Function to compute normalized edit distance between two strings.
@@ -168,6 +169,53 @@ def compute_coccurence_count(s1, s2, ngram, threshold):
 				ct = ct + 1
 
 	return _try_divide(float(ct), len(s1_ngrams) * len(s2_ngrams))
+
+"""
+Return a score denoting how similar two word senses are, based on the shortest 
+path that connects the senses in the is-a (hypernym/hypnoym) taxonomy. The 
+score is in the range 0 to 1, except in those cases where a path cannot be 
+found (will only be true for verbs as there are many distinct verb taxonomies),
+in which case -1 is returned. A score of 1 represents identity i.e. comparing
+a sense with itself will return 1.
+"""
+def compute_wordnet_similarity(s1, s2):
+	target_tokens = gen_ngrams(s1, 1)
+	obs_tokens = gen_ngrams(s2, 1)
+	if 0 == len(target_tokens) or 0 == len(obs_tokens):
+		return 0.0
+	
+	obs_synset_list = [wn.synsets(obs_token) for obs_token in obs_tokens]
+	target_synset_list = [wn.synsets(target_token) for target_token in target_tokens]
+
+	result = 1.0
+	for obs_synset in obs_synset_list:
+		score_list = []
+		for target_synset in target_synset_list:
+			max_similarity = maximum_similarity_for_two_synset_list(obs_synset, target_synset)
+			score_list.append(max_similarity)
+		result = min(result, max(score_list))
+	return result
+
+def maximum_similarity_for_two_synset_list(syn_list1, syn_list2):
+	max_score = 0.
+	if syn_list1 and syn_list2:
+		for syn1 in syn_list1:
+			for syn2 in syn_list2:
+				try:
+					_s = wn.path_similarity(syn1, syn2)
+				except:
+					_s = -1
+				if _s and _s > max_score:
+					max_score = _s
+	return max_score
+
+def compute_tfidf_score(dt_matrix, tf_idf, query):
+	tokens = query.split(" ")
+	score = 0.0
+	for entry in tokens:
+		if entry in tf_idf.vocabulary_:
+			score = score + dt_matrix[tf_idf.vocabulary_[entry]]
+	return score
 
 """
 Function to generate ngrams.

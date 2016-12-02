@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.externals import joblib
-from sklearn.model_selection import StratifiedShuffleSplit, GridSearchCV, cross_val_score
+from sklearn.model_selection import StratifiedShuffleSplit, GridSearchCV, cross_val_score, train_test_split
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
@@ -13,24 +13,37 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score
 
 def plot_learning_curve(ada_error_mean, ada_error_std,
-                        rf_error_mean, rf_error_std,
-                        lr_error_mean, lr_error_std,
-                        split_ratio, file_name):
-    plt.figure()
-    plt.title("Comparsion of different classifiers for predicting product's relevance to search term.")
+						rf_error_mean, rf_error_std,
+						lr_error_mean, lr_error_std,
+						split_ratio, file_name):
+	plt.figure()
+	plt.title("Comparsion of different classifiers for predicting product's relevance to search term.")
 
-    plt.xlabel("Training examples")
-    plt.ylabel("Accuracy")
-    plt.grid()
+	plt.xlabel("Training examples")
+	plt.ylabel("Accuracy")
+	plt.grid()
 
-    plt.fill_between(split_ratio, ada_error_mean - ada_error_std, ada_error_mean + ada_error_std, alpha=0.1, color="r")
-    plt.fill_between(split_ratio, rf_error_mean - ada_error_std, rf_error_mean + rf_error_std, alpha=0.1, color="g")
-    plt.fill_between(split_ratio, lr_error_mean - lr_error_std, lr_error_mean + lr_error_std, alpha=0.1, color="b")
-    plt.plot(split_ratio, ada_error_mean, 'o-', color="r", label="AdaBoostClassifier")
-    plt.plot(split_ratio, rf_error_mean, 'o-', color="g", label="Random Forest")
-    plt.plot(split_ratio, lr_error_mean, 'o-', color="b", label="Logistic Regression")
-    plt.legend(loc="best")
-    plt.savefig(file_name)
+	plt.fill_between(split_ratio, ada_error_mean - ada_error_std, ada_error_mean + ada_error_std, alpha=0.1, color="r")
+	plt.fill_between(split_ratio, rf_error_mean - ada_error_std, rf_error_mean + rf_error_std, alpha=0.1, color="g")
+	plt.fill_between(split_ratio, lr_error_mean - lr_error_std, lr_error_mean + lr_error_std, alpha=0.1, color="b")
+	plt.plot(split_ratio, ada_error_mean, 'o-', color="r", label="AdaBoostClassifier")
+	plt.plot(split_ratio, rf_error_mean, 'o-', color="g", label="Random Forest")
+	plt.plot(split_ratio, lr_error_mean, 'o-', color="b", label="Logistic Regression")
+	plt.legend(loc="best")
+	plt.savefig(file_name)
+
+def plot_learning_curve(tr_errors, te_errors, split_ratio, file_name):
+	
+	plt.figure()
+	plt.title("Learning Curve")
+	plt.xlabel("Training examples")
+	plt.ylabel("Error")
+	plt.grid()
+
+	plt.plot(split_ratio, tr_errors, 'o-', color="g", label="Training Error")
+	plt.plot(split_ratio, te_errors, 'o-', color="r", label="Test Error")
+	plt.legend(loc="best")
+	plt.savefig(file_name)
 
 def plot_feature_importances(importance_list, name_list, feature_importance_file_name):
 	plt.barh(range(len(name_list)),importance_list,align='center')
@@ -108,6 +121,18 @@ X, y, column_names = read_csv(train_file_name)
 print "Class distribution ..... "
 print np.unique(y, return_counts = True)
 
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 4)
+for i, ratio in enumerate(split_ratio):
+	X_iter, y_iter = X_train[:int(ratio * X_train.shape[0])], y_train[:int(ratio * X_train.shape[0])]
+	clf_rf = fitRandomForest(X_train, y_train)
+	clf_rf.fit(X_train, y_train)
+	tr_errors[i] = 1.0 - np.mean(clf_rf.predict(X_iter) == y_iter)
+	te_errors[i] = 1.0 - np.mean(clf_rf.predict(X_test) == y_test)
+	print "Ran iteration %d with %d training data points with %f training error and %f test error" %  (i+1, X_iter.shape[0],
+		tr_errors[i], te_errors[i])
+
+plot_learning_curve(tr_errors, te_errors, split_ratio, '../plots/learning_curve.png')
+
 """
 Learning Curve
 """
@@ -165,7 +190,6 @@ plot_learning_curve(ada_mean, ada_std, rf_mean, rf_std, lr_mean, lr_std, split_r
 """
 Feature Importance & F1 - scores
 """
-
 train_index, test_index = get_train_test_indexes(y)
 X_train, y_train, X_test, y_test = X[train_index], y[train_index], X[test_index], y[test_index]
 

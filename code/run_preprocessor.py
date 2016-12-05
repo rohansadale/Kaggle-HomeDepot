@@ -28,15 +28,17 @@ featureExtraction.combineFeatures()
 features_df = pd.DataFrame(featureExtraction.features,
 			columns = ['jaccard_unigram_title', 'jaccard_unigram_desc', 'jaccard_bigram_title', 'jaccard_bigram_desc',
 			'edit_distance_title', 'edit_distance_desc', 
-			#'first_intersect_count_unigram', 'last_intersect_count_unigram',
-			#'first_intersect_count_bigram', 'last_intersect_count_bigram', 'intersect_count', 
+			'first_intersect_count_unigram', 'last_intersect_count_unigram',
+			'first_intersect_count_bigram', 'last_intersect_count_bigram', 'intersect_count', 
 			'avg_similarity','rmse_title', 'rmse_desc', 
 			'longest_match', 
 			'attribute_matched', 
 			'coccurence_count', 
 			'doc2vec_rmse_title', 'doc2vec_rmse_desc', 
-			'path_wordnet_similarity',
+			#'path_wordnet_similarity',
 			'tf_idf_scores',
-			#'bullet_count', 'has_height', 'has_depth', 'has_length', 'has_width', 
-			'is_relevant'])
+			'bullet_count', 'has_height', 'has_depth', 'has_length', 'has_width', 
+			'is_relevant',
+			'relevant_ternary_label',
+			'relevance_score'])
 features_df.to_csv(base_dir + 'features.csv', sep = ",", index=False, float_format='%.3f')

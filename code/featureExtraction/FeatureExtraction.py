@@ -23,17 +23,26 @@ class FeatureExtraction(object):
 		self.doc2Vec_model_fname = preprocessor.doc2Vec_model_fname
 		self.build_attribute_dict()
 
+	def convert_to_label(self, x):
+		if x <= 1.67:
+			return 1
+		elif x <= 2.5:
+			return 2
+		else:
+			return 3
+
 	def extractContextualFeatures(self):
 		self.y = map(lambda x: 1 if x > FeatureExtraction.THRESHOLD else 0, self.data['relevance'])
+		self.y_ternary = map(lambda x: self.convert_to_label(x), self.data['relevance'])
 		self.word2Vec_model = gensim.models.Word2Vec.load(self.word2Vec_model_fname)
 		self.doc2Vec_model = gensim.models.Doc2Vec.load(self.doc2Vec_model_fname)
 		#self.construct_wordnet_features()
 		self.construct_tfidf_features()
 		self.construct_jaccard_coef_features()
 		self.construct_edit_distance_features()
-		#self.construct_intersect_count_features()
+		self.construct_intersect_count_features()
 		self.construct_coccurence_count_features()
-		#self.construct_non_contextual_features()
+		self.construct_non_contextual_features()
 		self.construct_word2vec_features()
 		self.construct_atrribute_features()
 		self.construct_string_match_features()
@@ -175,18 +184,20 @@ class FeatureExtraction(object):
 
 	def combineFeatures(self):
 		self.features = zip(self.jaccard_unigram_title, self.jaccard_unigram_desc, self.jaccard_bigram_title, self.jaccard_bigram_desc,
-						self.edit_distance_title, self.edit_distance_desc, 
-						#self.first_intersect_count_unigram, self.last_intersect_count_unigram, 
-						#self.first_intersect_count_bigram, self.last_intersect_count_bigram, self.intersect_count,
-						self.avg_similarity, self.rmse_title, self.rmse_desc, 
-						self.longest_match, 
+						self.edit_distance_title, self.edit_distance_desc,
+						self.first_intersect_count_unigram, self.last_intersect_count_unigram,
+						self.first_intersect_count_bigram, self.last_intersect_count_bigram, self.intersect_count,
+						self.avg_similarity, self.rmse_title, self.rmse_desc,
+						self.longest_match,
 						self.match_attr_ratio, 
-						self.coccurence_count, 
+						self.coccurence_count,
 						self.doc2vec_rmse_title, self.doc2vec_rmse_desc,
 						#self.path_wordnet_similarity,
 						self.tf_idf_scores,
-						#self.attr_bullet_ratio, self.attr_has_height, self.attr_has_depth, self.attr_has_length, self.attr_has_width,
-						self.y)
+						self.attr_bullet_ratio, self.attr_has_height, self.attr_has_depth, self.attr_has_length, self.attr_has_width,
+						self.y,
+						self.y_ternary,
+						self.data['relevance'])
 
 	def build_attribute_dict(self):
 		self.attribute_dict = {}

@@ -13,9 +13,13 @@ Edit distance is normalized so we compare values on same scale. For big strings
 value might be big and for smaller string it might be smaller. So we need to account
 for variation of string length.
 """
-def compute_edit_distance(s1, s2):
+def compute_edit_distance(s1, s2, should_normalize = True):
 	s1, s2 = str(s1), str(s2)
-	return round(distance(s1, s2)/float(max(len(s1),len(s2))), 3)
+	dist = distance(s1, s2)
+	if should_normalize:
+		dist = dist / float(max(len(s1),len(s2)))
+		dist = round(dist, 3)
+	return dist
 
 """
 Function to compute Jaccard Coefficient between two strings. We split the strings into n-grams

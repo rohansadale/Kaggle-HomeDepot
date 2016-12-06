@@ -46,6 +46,7 @@ class PreProcessor(object):
 		print "Cleaning search term .... "
 		t1 = time.time()
 		self.data['search_term'] = map(lambda x:str_stem(x), self.data['search_term'])
+		self.data['search_term'] = map(lambda x:self.clean_it_(x), self.data['search_term'])
 		print "Time while cleaning search term is %d seconds \n" % int(time.time() - t1)
 
 		print "Cleaning product description .... "

@@ -12,7 +12,7 @@ from utils.dist_util import compute_intersect_count, compute_wordnet_similarity,
 class FeatureExtraction(object):
 
 	THRESHOLD = 2.0
-	MATCH_THRESHOLD = 0.8
+	MATCH_THRESHOLD = 0.85
 
 	def __init__(self, preprocessor):
 		self.data = preprocessor.data
@@ -65,9 +65,10 @@ class FeatureExtraction(object):
 	def construct_edit_distance_features(self):
 		print "constructing edit distance related features .... "
 		t1 = time.time()
-		self.edit_distance_title = self.data.apply(lambda x: compute_edit_distance(x['product_title'], x['search_term']), axis = 1)
+		self.edit_distance_title = self.data.apply(lambda x: compute_edit_distance(x['product_title'], x['search_term'],
+									should_normalize = False), axis = 1)
 		self.edit_distance_desc = self.data.apply(lambda x: compute_edit_distance(self.description[x['product_uid']], 
-									x['search_term']), axis = 1)
+									x['search_term'], should_normalize = False), axis = 1)
 		print "Time while constructing edit distance related features is %d seconds \n" % int(time.time() - t1)	
 	
 	def construct_intersect_count_features(self):

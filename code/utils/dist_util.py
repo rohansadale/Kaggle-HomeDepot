@@ -50,6 +50,20 @@ def compute_first_last_intersect(s1, s2, idx, ngram, threshold):
 			ct = ct + 1
 	return _try_divide(float(ct), len(s2_ngrams))
 
+def compute_mean_intersect_position(s1, s2, ngram, threshold):
+	s1_ngrams = gen_ngrams(s1, ngram)
+	s2_ngrams = gen_ngrams(s2, ngram)
+	if 0 == len(s1_ngrams):
+		return 0.0
+	
+	pos = np.zeros(len(s2_ngrams))
+	for i, entry in enumerate(s2_ngrams):
+		for j, src_entry in enumerate(s1_ngrams, start = 1):
+			if is_str_match(src_entry, entry, threshold):
+				pos[i] = j
+				break
+	return np.mean(pos)
+
 """
 function to check if two strings matches with given level of similarity.
 """
@@ -68,11 +82,10 @@ def compute_cosine_similarity(target, src, model):
 	src_tokens = [w for w in src.split(" ") if w in model]
 	if 0 == len(target_tokens) or 0 == len(src_tokens):
 		return 0.0
-	min_similarity = 2.0
+	sim = 0.0
 	for src_entry in src_tokens:
-		max_similarity = max(map(lambda x: cosine_similarity(model[src_entry], model[x]), target_tokens))
-		min_similarity = min(min_similarity, max_similarity)
-	return min_similarity if min_similarity != 2.0 else 0.0
+		sim = sim + sum(map(lambda x: cosine_similarity(model[src_entry], model[x]), target_tokens))
+	return sim / float(len(target_tokens) * len(src_tokens))
 
 """
 Function to compute longest matching between two strings normalized by string length.
@@ -113,7 +126,7 @@ def cosine_similarity(a, b):
 	csum = 0.0
 	for i, entry in enumerate(a):
 		csum = csum + a[i] * b[i]
-	return csum
+	return csum / (np.linalg.norm(a) * np.linalg.norm(b))
 
 """
 Function to count of attribute in product_attribute_list that matches search_term. Note that we don't have

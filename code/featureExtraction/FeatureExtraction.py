@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from utils.dist_util import compute_jaccard, compute_edit_distance, compute_first_last_intersect, compute_cosine_similarity
 from utils.dist_util import compute_longest_match, compute_rmse, compute_match_attr_ratio, compute_coccurence_count
-from utils.dist_util import compute_intersect_count, compute_wordnet_similarity, compute_tfidf_score
+from utils.dist_util import compute_intersect_count, compute_wordnet_similarity, compute_tfidf_score, compute_mean_intersect_position
 
 class FeatureExtraction(object):
 
@@ -41,6 +41,7 @@ class FeatureExtraction(object):
 		self.construct_jaccard_coef_features()
 		self.construct_edit_distance_features()
 		self.construct_intersect_count_features()
+		self.construct_mean_intersect_position()
 		self.construct_coccurence_count_features()
 		self.construct_non_contextual_features()
 		self.construct_word2vec_features()
@@ -84,7 +85,14 @@ class FeatureExtraction(object):
 											x['search_term'], -1, 2, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
 		self.intersect_count = self.data.apply(lambda x: compute_intersect_count(x['product_title'], x['search_term'], 
 								1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
-		print "Time while constructing intersect count related features is %d seconds \n" % int(time.time() - t1)	
+		print "Time while constructing intersect count related features is %d seconds \n" % int(time.time() - t1)
+
+	def construct_mean_intersect_position(self):
+		print "constructing intersect position related features .... "
+		t1 = time.time()
+		self.mean_intersect_position = self.data.apply(lambda x: compute_mean_intersect_position(x['product_title'],
+											x['search_term'], 1, FeatureExtraction.MATCH_THRESHOLD), axis = 1)
+		print "Time while constructing intersect position related features is %d seconds \n" % int(time.time() - t1)	
 	
 	def construct_coccurence_count_features(self):
 		print "constructing coccurence related features .... "
@@ -184,15 +192,22 @@ class FeatureExtraction(object):
 			self.bullet_ratio[product] = (self.bullet_ratio[product] * 1.0) / len(attributes.keys())
 
 	def combineFeatures(self):
-		self.features = zip(self.jaccard_unigram_title, self.jaccard_unigram_desc, self.jaccard_bigram_title, self.jaccard_bigram_desc,
-						self.edit_distance_title, self.edit_distance_desc,
+		self.features = zip(self.jaccard_unigram_title, 
+						self.jaccard_unigram_desc, 
+						self.jaccard_bigram_title, self.jaccard_bigram_desc,
+						self.edit_distance_title,
+						self.edit_distance_desc,
 						self.first_intersect_count_unigram, self.last_intersect_count_unigram,
-						self.first_intersect_count_bigram, self.last_intersect_count_bigram, self.intersect_count,
-						self.avg_similarity, self.rmse_title, self.rmse_desc,
+						self.first_intersect_count_bigram, self.last_intersect_count_bigram, 
+						self.intersect_count,
+						self.mean_intersect_position,
+						self.avg_similarity, self.rmse_title, 
+						self.rmse_desc,
 						self.longest_match,
 						self.match_attr_ratio, 
 						self.coccurence_count,
-						self.doc2vec_rmse_title, self.doc2vec_rmse_desc,
+						self.doc2vec_rmse_title, 
+						self.doc2vec_rmse_desc,
 						#self.path_wordnet_similarity,
 						self.tf_idf_scores,
 						self.attr_bullet_ratio, self.attr_has_height, self.attr_has_depth, self.attr_has_length, self.attr_has_width,

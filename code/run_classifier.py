@@ -11,30 +11,10 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, mean_squared_error, f1_score 
 
-def plot_learning_curve(ada_error_mean, ada_error_std,
-						rf_error_mean, rf_error_std,
-						lr_error_mean, lr_error_std,
-						split_ratio, file_name):
-	plt.figure()
-	plt.title("Comparsion of different classifiers for predicting product's relevance to search term.")
-
-	plt.xlabel("Training examples")
-	plt.ylabel("Accuracy")
-	plt.grid()
-
-	plt.fill_between(split_ratio, ada_error_mean - ada_error_std, ada_error_mean + ada_error_std, alpha=0.1, color="r")
-	plt.fill_between(split_ratio, rf_error_mean - ada_error_std, rf_error_mean + rf_error_std, alpha=0.1, color="g")
-	plt.fill_between(split_ratio, lr_error_mean - lr_error_std, lr_error_mean + lr_error_std, alpha=0.1, color="b")
-	plt.plot(split_ratio, ada_error_mean, 'o-', color="r", label="AdaBoostClassifier")
-	plt.plot(split_ratio, rf_error_mean, 'o-', color="g", label="Random Forest")
-	plt.plot(split_ratio, lr_error_mean, 'o-', color="b", label="Logistic Regression")
-	plt.legend(loc="best")
-	plt.savefig(file_name)
-
-def plot_learning_curve(tr_errors, te_errors, split_ratio, file_name):
+def plot_learning_curve(tr_errors, te_errors, split_ratio, title, file_name):
 	
 	plt.figure()
-	plt.title("Learning Curve")
+	plt.title(title)
 	plt.xlabel("Training examples")
 	plt.ylabel("Error")
 	plt.grid()
@@ -80,7 +60,7 @@ def fitAdaBoost(X, y):
 	param_grid = {"base_estimator__criterion" : ["gini", "entropy"]}
 	clf_dt = DecisionTreeClassifier(random_state = 4, class_weight = "balanced", max_features = None, max_depth = 5)
 	clf_abc = AdaBoostClassifier(base_estimator = clf_dt)
-	clf = GridSearchCV(clf_abc, param_grid = param_grid, cv = 5, scoring = 'accuracy', n_jobs=4)
+	clf = GridSearchCV(clf_abc, param_grid = param_grid, cv = 5, scoring = 'accuracy', n_jobs=-1)
 	clf.fit(X, y)
 	best_clf_dt = DecisionTreeClassifier(random_state = 4, max_features = None, class_weight = "balanced", max_depth = 5,
 										criterion = clf.best_params_['base_estimator__criterion'])
@@ -91,7 +71,7 @@ def fitRandomForest(X, y):
 
 	param_grid = { "n_estimators" : [10, 20], "criterion" : ["gini", "entropy"], "max_features" : ["auto", "log2", None]}
 	clf_rf = RandomForestClassifier(random_state = 4)
-	clf = GridSearchCV(clf_rf, param_grid, cv = 5, scoring = 'accuracy', n_jobs=4)
+	clf = GridSearchCV(clf_rf, param_grid, cv = 5, scoring = 'accuracy', n_jobs=-1)
 	clf.fit(X,y)
 	best_clf = RandomForestClassifier(criterion = clf.best_params_['criterion'], max_features = clf.best_params_['max_features'],
 									  n_estimators = clf.best_params_['n_estimators'])
@@ -100,20 +80,17 @@ def fitRandomForest(X, y):
 def fitLR(X, y):
 
 	param_grid = {'C' : [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
-	clf = GridSearchCV(LogisticRegression(), param_grid, cv = 5, scoring = 'accuracy', n_jobs=4)
+	clf = GridSearchCV(LogisticRegression(), param_grid, cv = 5, scoring = 'accuracy', n_jobs=-1)
 	clf.fit(X,y)
 	best_clf = LogisticRegression(C = clf.best_params_['C'])
 	return best_clf 
 
 def fitRegression(X, y):
 	gb_learning_grid = [0.1, 0.05, 0.02, 0.01]
-	param_grid = {'learning_rate':gb_learning_grid} #, 'n_estimators':gb_estimators_grid, 'min_samples_leaf':gb_minleaf_grid}
-	clf = GridSearchCV(GradientBoostingRegressor(), param_grid=param_grid, n_jobs=4, cv=5)
+	param_grid = {'learning_rate':gb_learning_grid}
+	clf = GridSearchCV(GradientBoostingRegressor(), param_grid=param_grid, n_jobs=-1, cv=5)
 	clf.fit(X, y)
-	best_clf = GradientBoostingRegressor(learning_rate = clf.best_params_['learning_rate'],
-									#n_estimators = clf.best_params_['n_estimators'],
-									#min_samples_leaf = clf.best_params_['min_samples_leaf']
-									)
+	best_clf = GradientBoostingRegressor(learning_rate = clf.best_params_['learning_rate'])
 	return best_clf
 
 def doClassification(X, y, split_ratio, file_name, msg):
@@ -130,7 +107,8 @@ def doClassification(X, y, split_ratio, file_name, msg):
 		print "Ran iteration %d with %d training data points with %f training error and %f test error" %  (i+1, X_iter.shape[0],
 			tr_errors[i], te_errors[i])
 
-	plot_learning_curve(tr_errors, te_errors, split_ratio, '../plots/' + file_name)
+	title = "Learning Curve for " + msg
+	plot_learning_curve(tr_errors, te_errors, split_ratio, title, '../plots/' + file_name)
 	print " ============================================================ "
 
 def doRegression(X, y, split_ratio, file_name, msg):
@@ -147,19 +125,11 @@ def doRegression(X, y, split_ratio, file_name, msg):
 		print "Ran iteration %d with %d training data points with %f training RMSE and %f test RMSE" %  (i+1, X_iter.shape[0],
 			tr_errors[i], te_errors[i])
 
-	plot_learning_curve(tr_errors, te_errors, split_ratio, '../plots/' + file_name)
+	title = "Learning Curve for " + msg
+	plot_learning_curve(tr_errors, te_errors, split_ratio, title, '../plots/' + file_name)
 	print " ============================================================ "
 
 train_file_name = sys.argv[1]
-num_splits = 5
-split_ratio = np.arange(0.05, 1.0, 0.05)
-
-ada_errors = np.zeros((num_splits, len(split_ratio)))
-rf_errors = np.zeros((num_splits, len(split_ratio)))
-lr_errors = np.zeros((num_splits, len(split_ratio)))
-tr_errors = np.zeros(len(split_ratio))
-te_errors = np.zeros(len(split_ratio))
-
 X, y, y_ternary, score, column_names = read_csv(train_file_name)
 print "Class distribution for binary labels ..... "
 print np.unique(y, return_counts = True)
@@ -167,74 +137,58 @@ print np.unique(y, return_counts = True)
 print "Class distribution for ternary labels ..... "
 print np.unique(y_ternary, return_counts = True)
 
-doRegression(X, score, split_ratio, 'learning_curve_regression.png', 'Doing Regression .....')
-doClassification(X, y_ternary, split_ratio, 'learning_curve_ternary.png', 'Doing ternary classification .....')
-doClassification(X, y, split_ratio, 'learning_curve_binary.png', 'Doing binary classification .....')
+"""
+Learning Curve with RandomForestClassifier and GradientBoostingRegressor
+"""
+
+print "Learning Curve with RandomForestClassifier and GradientBoostingRegressor ...."
+doRegression(X, score, np.arange(0.1, 1.01, 0.1), 'learning_curve_regression.png', 'Regression .....')
+doClassification(X, y_ternary, np.arange(0.1, 1.01, 0.1), 'learning_curve_ternary.png', 'ternary classification .....')
+doClassification(X, y, np.arange(0.1, 1.01, 0.1), 'learning_curve_binary.png', 'binary classification .....')
+
+train_index, test_index = get_train_test_indexes(y)
+X_train, y_train, X_test, y_test = X[train_index], y[train_index], X[test_index], y[test_index]
 
 """
-Learning Curve
+10 Fold Cross Validation....
 """
-for i in range(num_splits):
-	print "Running iteration %d " % (i+1)
-	stratified_split = StratifiedShuffleSplit(n_splits = 1, test_size = 0.2, random_state = i+1)
-	for train_index, test_index in stratified_split.split(X, y):
-		X_test, y_test = X[test_index], y[test_index]
-		for j in range(len(split_ratio)):
-			required_size = int(split_ratio[j] * train_index.shape[0])
-			required_index = train_index[:required_size]
-			X_train, y_train = X[required_index], y[required_index]
-			
-			clf = fitAdaBoost(X_train, y_train)
-			clf.fit(X_train, y_train)
-			y_pred = clf.predict(X_test)
-			ada_errors[i][j] = np.mean(y_pred == y_test)
-			
-			clf_rf = fitRandomForest(X_train, y_train)
-			clf_rf.fit(X_train, y_train)
-			y_pred = clf_rf.predict(X_test)
-			rf_errors[i][j] = np.mean(y_pred == y_test)
-			
-			clf_lr = fitLR(X_train, y_train)
-			clf_lr.fit(X_train, y_train)
-			y_pred = clf_lr.predict(X_test)
-			lr_errors[i][j] = np.mean(y_pred == y_test)
 
-ada_mean = np.mean(ada_errors, axis = 0)
-ada_std = np.std(ada_errors, axis = 0)
+print " ============================================================================= "
+clf_rf = fitRandomForest(X, y)
+scores = cross_val_score(clf_rf, X, y, cv = 10)
+print "10 fold cv for binary classification using RandomForests had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
-rf_mean = np.mean(rf_errors, axis = 0)
-rf_std = np.std(rf_errors, axis = 0)
+clf_adaboost = fitAdaBoost(X, y)
+scores = cross_val_score(clf_adaboost, X, y, cv = 10)
+print "10 fold cv for binary classification using AdaBoost had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
-lr_mean = np.mean(lr_errors, axis = 0)
-lr_std = np.std(lr_errors, axis = 0)
+clf_rf = fitRandomForest(X, y_ternary)
+scores = cross_val_score(clf_rf, X, y_ternary, cv = 10)
+print "10 fold cv for ternary classification using RandomForests had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
-print "Average accuracy using AdaBoostClassifier .... "
-print ada_mean
-print ada_std
-print " =========================================== "
+clf_adaboost = fitAdaBoost(X, y_ternary)
+scores = cross_val_score(clf_adaboost, X, y_ternary, cv = 10)
+print "10 fold cv for ternary classification using AdaBoost had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
-print "Average accuracy using RandomForestClassifier .... "
-print rf_mean
-print rf_std
-print " =========================================== "
 
-print "Average accuracy using LogisticRegression .... "
-print lr_mean
-print lr_std
-print " ========================================= "
+clf_reg = fitRegression(X, score)
+scores = cross_val_score(clf_reg, X, score, cv = 10)
+print "10 fold cv for regression using GradientBoostingRegressor had RMSE %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
-plot_learning_curve(ada_mean, ada_std, rf_mean, rf_std, lr_mean, lr_std, split_ratio, '../plots/learning_curve.png')
+train_index, test_index = get_train_test_indexes(y)
+X_train, y_train, X_test, y_test = X[train_index], y[train_index], X[test_index], y[test_index]
+
+print " ============================================================================= "
 
 """
 Feature Importance & F1 - scores
 """
-train_index, test_index = get_train_test_indexes(y)
-X_train, y_train, X_test, y_test = X[train_index], y[train_index], X[test_index], y[test_index]
 
+print "Getting Feature importances and F1 scores for binary classification ..... "
 clf_rf = fitRandomForest(X_train, y_train)
 clf_rf.fit(X_train, y_train)
 y_pred = clf_rf.predict(X_test)
-print "Using RandomForestClassifier Classifier ... "
+print "F1 scores and confusion-matrix using RandomForestClassifier Classifier ... "
 print confusion_matrix(y_test, y_pred,[0, 1])
 print f1_score(y_test, y_pred, [0, 1], average = None)
 
@@ -249,13 +203,32 @@ plot_feature_importances(importance_list, name_list, '../plots/feature_importanc
 clf_adaboost = fitAdaBoost(X_train, y_train)
 clf_adaboost.fit(X_train, y_train)
 y_pred = clf_adaboost.predict(X_test)
-print "Using AdaBoost Classifier ... "
+print "F1 scores and confusion-matrix using AdaBoost Classifier ... "
 print confusion_matrix(y_test, y_pred,[0, 1])
 print f1_score(y_test, y_pred, [0, 1], average = None)
 
-clf_lr = fitLR(X_train, y_train)
-clf_lr.fit(X_train, y_train)
-y_pred = clf_lr.predict(X_test)
-print "Using LogisticRegression Classifier ... "
-print confusion_matrix(y_test, y_pred,[0, 1])
-print f1_score(y_test, y_pred, [0, 1], average = None)
+train_index, test_index = get_train_test_indexes(y_ternary)
+X_train, y_train, X_test, y_test = X[train_index], y_ternary[train_index], X[test_index], y_ternary[test_index]
+
+print "Getting Feature importances and F1 scores for ternary classification ..... "
+clf_rf = fitRandomForest(X_train, y_train)
+clf_rf.fit(X_train, y_train)
+y_pred = clf_rf.predict(X_test)
+print "F1 scores and confusion-matrix using RandomForestClassifier Classifier ... "
+print confusion_matrix(y_test, y_pred,[1, 2, 3])
+print f1_score(y_test, y_pred, [1, 2, 3], average = None)
+
+print "Feature importance .... "
+print clf_rf.feature_importances_
+importance_list = clf_rf.feature_importances_
+importance_list, name_list = zip(*sorted(zip(map(lambda x: round(x, 4), clf_rf.feature_importances_), column_names), reverse=True))
+importance_list, name_list = importance_list[:5], name_list[:5]
+print importance_list, name_list
+plot_feature_importances(importance_list, name_list, '../plots/feature_importance.png')
+
+clf_adaboost = fitAdaBoost(X_train, y_train)
+clf_adaboost.fit(X_train, y_train)
+y_pred = clf_adaboost.predict(X_test)
+print "F1 scores and confusion-matrix using AdaBoost Classifier ... "
+print confusion_matrix(y_test, y_pred,[1, 2, 3])
+print f1_score(y_test, y_pred, [1, 2 , 3], average = None)

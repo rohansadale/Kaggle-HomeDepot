@@ -78,3 +78,8 @@ Getting Feature importances and F1 scores for ternary classification .....
 	F1 Scores:- [ 0.38654279  0.40310553  0.60965842]
 [ 0.38654279  0.40310553  0.60965842]
 
+
+10 fold cv for binary classification using XGBoost had accuracy 0.702 and std. dev 0.009
+10 fold cv for ternary classification using XGBoost had accuracy 0.544 and std. dev 0.023
+10 fold cv for regression using XGBoost had RMSE 0.180 and std. dev 0.035
+10 fold cv for binary classification using stacking had accuracy 0.690 and std. dev 0.019

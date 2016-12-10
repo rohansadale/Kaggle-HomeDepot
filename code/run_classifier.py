@@ -4,12 +4,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+from mlxtend.classifier import StackingClassifier
+from sklearn.naive_bayes import GaussianNB
 from sklearn.externals import joblib
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedShuffleSplit, GridSearchCV, cross_val_score, train_test_split
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier, GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, mean_squared_error, f1_score 
+from xgboost.sklearn import XGBClassifier, XGBRegressor
 
 def plot_learning_curve(tr_errors, te_errors, split_ratio, title, file_name):
 	
@@ -55,6 +58,30 @@ def get_train_test_indexes(y, train_proportion = 0.8):
 			test_idx[label_idx[threshold:]] = True
 	  
 		return train_idx, test_idx
+
+def fitGaussianNB(X, y):
+	freq = np.unique(y, return_counts = True)
+	csum = 0
+	for entry in freq[1]:
+		csum = csum + entry
+	priors = np.zeros(len(freq[0]))
+	for i in range(len(freq[0])):
+		priors[i] = float(freq[1][i]) / csum
+	return GaussianNB(priors)
+
+def fitxgBoostClassifier(X, y):
+	param_grid = {"n_estimators" : [100, 150, 200], "max_depth": [3, 5, 7, 9]}
+	clf_xgb = XGBClassifier()
+	clf = GridSearchCV(clf_xgb, param_grid, cv = 5, scoring = 'accuracy', n_jobs=-1)
+	clf.fit(X,y)
+	return XGBClassifier(n_estimators = clf.best_params_['n_estimators'], max_depth = clf.best_params_['max_depth'])
+
+def fitxgBoostRegressor(X, y):
+	param_grid = {"n_estimators" : [100, 150, 200], "max_depth": [3, 5, 7, 9]}
+	clf_xgb = XGBRegressor()
+	clf = GridSearchCV(clf_xgb, param_grid, cv = 5, scoring = 'neg_mean_squared_error', n_jobs=-1)
+	clf.fit(X,y)
+	return XGBRegressor(n_estimators = clf.best_params_['n_estimators'], max_depth = clf.best_params_['max_depth'])	
 
 def fitAdaBoost(X, y):
 	param_grid = {"base_estimator__criterion" : ["gini", "entropy"]}
@@ -136,6 +163,24 @@ print np.unique(y, return_counts = True)
 
 print "Class distribution for ternary labels ..... "
 print np.unique(y_ternary, return_counts = True)
+
+scores = cross_val_score(fitGaussianNB(X, y), X, y, cv = 10)
+print "10 fold cv for binary classification using GaussianNB had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+scores = cross_val_score(fitxgBoostClassifier(X, y), X, y, cv = 10)
+print "10 fold cv for binary classification using XGBoost had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+scores = cross_val_score(fitxgBoostClassifier(X, y), X, y_ternary, cv = 10)
+print "10 fold cv for ternary classification using XGBoost had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+scores = cross_val_score(fitxgBoostRegressor(X, score), X, score, cv = 10)
+print "10 fold cv for regression using XGBoost had RMSE %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+print "Doing stacking .... "
+sclf = StackingClassifier(classifiers=[fitxgBoostClassifier(X, y), fitRandomForest(X, y), fitAdaBoost(X, y)],
+		meta_classifier=LogisticRegression())
+scores = cross_val_score(sclf, X, y, cv=10, scoring='accuracy')
+print "10 fold cv for binary classification using stacking had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
 """
 Learning Curve with RandomForestClassifier and GradientBoostingRegressor

@@ -8,6 +8,7 @@ from keras.layers import Activation
 from keras.callbacks import Callback
 from keras.wrappers.scikit_learn import KerasRegressor
 from sklearn.model_selection import StratifiedShuffleSplit, KFold, cross_val_score
+from sklearn.metrics import confusion_matrix, mean_squared_error, f1_score 
 
 class LossHistory(Callback):
 	def on_train_begin(self, logs={}):
@@ -95,16 +96,17 @@ num_epoch = 500
 batch_size = 1000
 
 model = Sequential()
-model.add(Dense(int(1.5 *columns), input_dim = columns, init = 'uniform', activation = 'relu')) #1st hidden layer
-model.add(Dense(columns , init = 'normal', activation = 'relu')) #2nd hidden layer
-model.add(Activation('softmax')) #output layer
+model.add(Dense(columns + 4, input_dim = columns, init = 'uniform', activation = 'relu')) #1st hidden layer
+model.add(Dense(columns + 2, init = 'normal', activation = 'relu')) #2nd hidden layer
+model.add(Dense(columns + 4, init = 'normal', activation = 'relu')) #3rd hidden layer
 model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 do_classification(X, y_ternary, model,  num_splits, num_epoch, batch_size, "../plots/NN_learning_ternary.png",
 	"Doing ternary classification ....")
 
 model = Sequential()
-model.add(Dense(int(1.5 *columns), input_dim = columns, init = 'uniform', activation = 'relu')) #1st hidden layer
-model.add(Dense(columns , init = 'normal', activation = 'relu')) #2nd hidden layer
+model.add(Dense(columns + 4, input_dim = columns, init = 'uniform', activation = 'relu')) #1st hidden layer
+model.add(Dense(columns + 2, init = 'normal', activation = 'relu')) #2nd hidden layer
+model.add(Dense(columns + 4, init = 'normal', activation = 'relu')) #3rd hidden layer
 model.add(Dense(1, activation = 'sigmoid')) #output layer
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 do_classification(X, y, model, num_splits, num_epoch, batch_size, "../plots/NN_learning_binary.png", "Doing binary classification ....")

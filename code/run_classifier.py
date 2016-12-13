@@ -96,7 +96,7 @@ def fitAdaBoost(X, y):
 
 def fitRandomForest(X, y):
 
-	param_grid = { "n_estimators" : [10, 20], "criterion" : ["gini", "entropy"], "max_features" : ["auto", "log2", None]}
+	param_grid = { "n_estimators" : [10, 50, 100], "criterion" : ["gini", "entropy"], "max_features" : ["auto", "log2", None]}
 	clf_rf = RandomForestClassifier(random_state = 4)
 	clf = GridSearchCV(clf_rf, param_grid, cv = 5, scoring = 'accuracy', n_jobs=-1)
 	clf.fit(X,y)
@@ -105,12 +105,7 @@ def fitRandomForest(X, y):
 	return best_clf
 
 def fitLR(X, y):
-
-	param_grid = {'C' : [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
-	clf = GridSearchCV(LogisticRegression(), param_grid, cv = 5, scoring = 'accuracy', n_jobs=-1)
-	clf.fit(X,y)
-	best_clf = LogisticRegression(C = clf.best_params_['C'])
-	return best_clf 
+	return LogisticRegression()
 
 def fitRegression(X, y):
 	gb_learning_grid = [0.1, 0.05, 0.02, 0.01]
@@ -164,14 +159,26 @@ print np.unique(y, return_counts = True)
 print "Class distribution for ternary labels ..... "
 print np.unique(y_ternary, return_counts = True)
 
-scores = cross_val_score(fitGaussianNB(X, y), X, y, cv = 10)
-print "10 fold cv for binary classification using GaussianNB had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+scores = cross_val_score(fitRandomForest(X, y), X, y, cv = 10)
+print "10 fold cv for binary classification using RF had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+scores = cross_val_score(fitRandomForest(X, y_ternary), X, y_ternary, cv = 10)
+print "10 fold cv for ternary classification using RF had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
 scores = cross_val_score(fitxgBoostClassifier(X, y), X, y, cv = 10)
 print "10 fold cv for binary classification using XGBoost had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
-scores = cross_val_score(fitxgBoostClassifier(X, y), X, y_ternary, cv = 10)
+scores = cross_val_score(fitxgBoostClassifier(X, y_ternary), X, y_ternary, cv = 10)
 print "10 fold cv for ternary classification using XGBoost had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+scores = cross_val_score(LogisticRegression(), X, y_ternary, cv = 10)
+print "10 fold cv for ternary classification using LogisticRegression had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+scores = cross_val_score(LogisticRegression(), X, y, cv = 10)
+print "10 fold cv for binary classification using LogisticRegression had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
+
+scores = cross_val_score(fitGaussianNB(X, y), X, y, cv = 10)
+print "10 fold cv for binary classification using GaussianNB had accuracy %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
 
 scores = cross_val_score(fitxgBoostRegressor(X, score), X, score, cv = 10)
 print "10 fold cv for regression using XGBoost had RMSE %.3f and std. dev %.3f " % (np.mean(scores), np.std(scores))
